@@ -63,9 +63,17 @@ function NovoLancamento() {
         comprovante_url = path;
       }
 
-      const { data: lanc, error } = await supabase
-        .from("lancamentos" as never)
-        .insert({ // @ts-expect-error dynamic
+      const db = supabase as unknown as {
+        from: (t: string) => {
+          insert: (v: unknown) => {
+            select: () => { single: () => Promise<{ data: { id: string } | null; error: Error | null }> };
+          } & Promise<{ error: Error | null }>;
+        };
+      };
+
+      const { data: lanc, error } = await db
+        .from("lancamentos")
+        .insert({
           categoria,
           descricao: descricao.trim(),
           fornecedor: fornecedor.trim() || null,
@@ -89,7 +97,7 @@ function NovoLancamento() {
         vencimento: p.vencimento,
         pago: false,
       }));
-      const { error: e2 } = await supabase.from("parcelas" as never).insert(parcelas);
+      const { error: e2 } = await db.from("parcelas").insert(parcelas);
       if (e2) throw e2;
     },
     onSuccess: () => {
