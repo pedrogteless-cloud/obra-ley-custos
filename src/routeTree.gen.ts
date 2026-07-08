@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as VencimentosRouteImport } from './routes/vencimentos'
+import { Route as OrdensRouteImport } from './routes/ordens'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LancarRouteImport } from './routes/lancar'
 import { Route as GastosRouteImport } from './routes/gastos'
@@ -18,6 +19,11 @@ import { Route as IndexRouteImport } from './routes/index'
 const VencimentosRoute = VencimentosRouteImport.update({
   id: '/vencimentos',
   path: '/vencimentos',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const OrdensRoute = OrdensRouteImport.update({
+  id: '/ordens',
+  path: '/ordens',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -46,6 +52,7 @@ export interface FileRoutesByFullPath {
   '/gastos': typeof GastosRoute
   '/lancar': typeof LancarRoute
   '/login': typeof LoginRoute
+  '/ordens': typeof OrdensRoute
   '/vencimentos': typeof VencimentosRoute
 }
 export interface FileRoutesByTo {
@@ -53,6 +60,7 @@ export interface FileRoutesByTo {
   '/gastos': typeof GastosRoute
   '/lancar': typeof LancarRoute
   '/login': typeof LoginRoute
+  '/ordens': typeof OrdensRoute
   '/vencimentos': typeof VencimentosRoute
 }
 export interface FileRoutesById {
@@ -61,14 +69,22 @@ export interface FileRoutesById {
   '/gastos': typeof GastosRoute
   '/lancar': typeof LancarRoute
   '/login': typeof LoginRoute
+  '/ordens': typeof OrdensRoute
   '/vencimentos': typeof VencimentosRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/gastos' | '/lancar' | '/login' | '/vencimentos'
+  fullPaths: '/' | '/gastos' | '/lancar' | '/login' | '/ordens' | '/vencimentos'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/gastos' | '/lancar' | '/login' | '/vencimentos'
-  id: '__root__' | '/' | '/gastos' | '/lancar' | '/login' | '/vencimentos'
+  to: '/' | '/gastos' | '/lancar' | '/login' | '/ordens' | '/vencimentos'
+  id:
+    | '__root__'
+    | '/'
+    | '/gastos'
+    | '/lancar'
+    | '/login'
+    | '/ordens'
+    | '/vencimentos'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -76,6 +92,7 @@ export interface RootRouteChildren {
   GastosRoute: typeof GastosRoute
   LancarRoute: typeof LancarRoute
   LoginRoute: typeof LoginRoute
+  OrdensRoute: typeof OrdensRoute
   VencimentosRoute: typeof VencimentosRoute
 }
 
@@ -86,6 +103,13 @@ declare module '@tanstack/react-router' {
       path: '/vencimentos'
       fullPath: '/vencimentos'
       preLoaderRoute: typeof VencimentosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/ordens': {
+      id: '/ordens'
+      path: '/ordens'
+      fullPath: '/ordens'
+      preLoaderRoute: typeof OrdensRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -124,6 +148,7 @@ const rootRouteChildren: RootRouteChildren = {
   GastosRoute: GastosRoute,
   LancarRoute: LancarRoute,
   LoginRoute: LoginRoute,
+  OrdensRoute: OrdensRoute,
   VencimentosRoute: VencimentosRoute,
 }
 export const routeTree = rootRouteImport
