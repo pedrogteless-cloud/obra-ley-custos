@@ -85,6 +85,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { property: "og:description", content: "Controle interno de gastos da reconstrução da fábrica em Eusébio-CE." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
+      { name: "twitter:title", content: "Custos da Obra · Grupo Ley" },
+      { name: "twitter:description", content: "Controle interno de gastos da reconstrução da fábrica em Eusébio-CE." },
+      { property: "og:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/1470eed7-5edd-4221-bdc0-bcb0b4663a46/id-preview-bb2c1fc6--c66a5f9d-df00-4bcc-9673-398afb072484.lovable.app-1783535704630.png" },
+      { name: "twitter:image", content: "https://pub-bb2e103a32db4e198524a2e9ed8f35b4.r2.dev/1470eed7-5edd-4221-bdc0-bcb0b4663a46/id-preview-bb2c1fc6--c66a5f9d-df00-4bcc-9673-398afb072484.lovable.app-1783535704630.png" },
     ],
     links: [
       {
