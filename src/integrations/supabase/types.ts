@@ -14,7 +14,139 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      lancamentos: {
+        Row: {
+          categoria: string
+          comprovante_url: string | null
+          created_at: string | null
+          data: string
+          descricao: string
+          fornecedor: string | null
+          id: string
+          observacao: string | null
+          quantidade: number | null
+          responsavel: string
+          subcategoria: string | null
+          unidade: string | null
+          valor: number
+        }
+        Insert: {
+          categoria: string
+          comprovante_url?: string | null
+          created_at?: string | null
+          data?: string
+          descricao: string
+          fornecedor?: string | null
+          id?: string
+          observacao?: string | null
+          quantidade?: number | null
+          responsavel: string
+          subcategoria?: string | null
+          unidade?: string | null
+          valor: number
+        }
+        Update: {
+          categoria?: string
+          comprovante_url?: string | null
+          created_at?: string | null
+          data?: string
+          descricao?: string
+          fornecedor?: string | null
+          id?: string
+          observacao?: string | null
+          quantidade?: number | null
+          responsavel?: string
+          subcategoria?: string | null
+          unidade?: string | null
+          valor?: number
+        }
+        Relationships: []
+      }
+      ordens_pagamento: {
+        Row: {
+          aprovado_por: string | null
+          created_at: string | null
+          data_pagamento: string
+          forma_pagamento: string | null
+          fornecedor: string | null
+          id: string
+          observacao: string | null
+          parcela_id: string
+          status: string
+          valor: number
+        }
+        Insert: {
+          aprovado_por?: string | null
+          created_at?: string | null
+          data_pagamento: string
+          forma_pagamento?: string | null
+          fornecedor?: string | null
+          id?: string
+          observacao?: string | null
+          parcela_id: string
+          status?: string
+          valor: number
+        }
+        Update: {
+          aprovado_por?: string | null
+          created_at?: string | null
+          data_pagamento?: string
+          forma_pagamento?: string | null
+          fornecedor?: string | null
+          id?: string
+          observacao?: string | null
+          parcela_id?: string
+          status?: string
+          valor?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "ordens_pagamento_parcela_id_fkey"
+            columns: ["parcela_id"]
+            isOneToOne: false
+            referencedRelation: "parcelas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parcelas: {
+        Row: {
+          created_at: string | null
+          id: string
+          lancamento_id: string
+          numero: number
+          pago: boolean | null
+          valor: number
+          vencimento: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          lancamento_id: string
+          numero: number
+          pago?: boolean | null
+          valor: number
+          vencimento: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          lancamento_id?: string
+          numero?: number
+          pago?: boolean | null
+          valor?: number
+          vencimento?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "parcelas_lancamento_id_fkey"
+            columns: ["lancamento_id"]
+            isOneToOne: false
+            referencedRelation: "lancamentos"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
