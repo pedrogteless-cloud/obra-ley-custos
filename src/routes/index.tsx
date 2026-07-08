@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/lib/db";
+import { db } from "@/lib/db";
 import { AppLayout } from "@/components/AppLayout";
 import { brl, CATEGORIAS, dataBR, statusVencimento, type Categoria } from "@/lib/format";
 import { TrendingUp, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
