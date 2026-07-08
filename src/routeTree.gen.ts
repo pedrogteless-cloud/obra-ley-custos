@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as LancarRouteImport } from './routes/lancar'
+import { Route as GastosRouteImport } from './routes/gastos'
 import { Route as IndexRouteImport } from './routes/index'
 
 const LoginRoute = LoginRouteImport.update({
@@ -23,6 +24,11 @@ const LancarRoute = LancarRouteImport.update({
   path: '/lancar',
   getParentRoute: () => rootRouteImport,
 } as any)
+const GastosRoute = GastosRouteImport.update({
+  id: '/gastos',
+  path: '/gastos',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
@@ -31,30 +37,34 @@ const IndexRoute = IndexRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/gastos': typeof GastosRoute
   '/lancar': typeof LancarRoute
   '/login': typeof LoginRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/gastos': typeof GastosRoute
   '/lancar': typeof LancarRoute
   '/login': typeof LoginRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/gastos': typeof GastosRoute
   '/lancar': typeof LancarRoute
   '/login': typeof LoginRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/lancar' | '/login'
+  fullPaths: '/' | '/gastos' | '/lancar' | '/login'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/lancar' | '/login'
-  id: '__root__' | '/' | '/lancar' | '/login'
+  to: '/' | '/gastos' | '/lancar' | '/login'
+  id: '__root__' | '/' | '/gastos' | '/lancar' | '/login'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  GastosRoute: typeof GastosRoute
   LancarRoute: typeof LancarRoute
   LoginRoute: typeof LoginRoute
 }
@@ -75,6 +85,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LancarRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/gastos': {
+      id: '/gastos'
+      path: '/gastos'
+      fullPath: '/gastos'
+      preLoaderRoute: typeof GastosRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -87,6 +104,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  GastosRoute: GastosRoute,
   LancarRoute: LancarRoute,
   LoginRoute: LoginRoute,
 }
