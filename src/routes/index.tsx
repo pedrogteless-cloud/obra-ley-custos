@@ -21,8 +21,8 @@ function Painel() {
   const { data: parcelas = [] } = useQuery({
     queryKey: ["parcelas"],
     queryFn: async () => {
-      const { data, error } = await supabase
-        .from("parcelas" as never)
+      const { data, error } = await db
+        .from("parcelas")
         .select("*, lancamentos(descricao, fornecedor, categoria)")
         .order("vencimento", { ascending: true });
       if (error) throw error;
