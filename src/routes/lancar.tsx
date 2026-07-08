@@ -56,20 +56,13 @@ function NovoLancamento() {
       if (comprovante) {
         const ext = comprovante.name.split(".").pop() || "jpg";
         const path = `${data}/${crypto.randomUUID()}.${ext}`;
-        const up = await supabase.storage.from("comprovantes").upload(path, comprovante, {
+        const up = await db.storage.from("comprovantes").upload(path, comprovante, {
           contentType: comprovante.type,
         });
         if (up.error) throw up.error;
         comprovante_url = path;
       }
 
-      const db = supabase as unknown as {
-        from: (t: string) => {
-          insert: (v: unknown) => {
-            select: () => { single: () => Promise<{ data: { id: string } | null; error: Error | null }> };
-          } & Promise<{ error: Error | null }>;
-        };
-      };
 
       const { data: lanc, error } = await db
         .from("lancamentos")
