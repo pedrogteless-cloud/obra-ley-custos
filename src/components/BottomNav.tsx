@@ -1,13 +1,13 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Receipt, Plus, CalendarClock, FileCheck2 } from "lucide-react";
 
-const itens = [
+const itens: { to: "/" | "/gastos" | "/lancar" | "/vencimentos" | "/ordens"; label: string; icon: typeof LayoutDashboard; destaque?: boolean }[] = [
   { to: "/", label: "Painel", icon: LayoutDashboard },
   { to: "/gastos", label: "Gastos", icon: Receipt },
   { to: "/lancar", label: "Lançar", icon: Plus, destaque: true },
   { to: "/vencimentos", label: "Vencer", icon: CalendarClock },
   { to: "/ordens", label: "Ordens", icon: FileCheck2 },
-] as const;
+];
 
 export function BottomNav() {
   const pathname = useRouterState({ select: (s) => s.location.pathname });
