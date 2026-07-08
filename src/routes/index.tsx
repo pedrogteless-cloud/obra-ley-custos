@@ -1,6 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/db";
 import { AppLayout } from "@/components/AppLayout";
 import { brl, CATEGORIAS, dataBR, statusVencimento, type Categoria } from "@/lib/format";
 import { TrendingUp, Clock, CheckCircle2, AlertTriangle } from "lucide-react";
@@ -13,7 +13,7 @@ function Painel() {
   const { data: lancamentos = [] } = useQuery({
     queryKey: ["lancamentos"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("lancamentos" as never).select("*");
+      const { data, error } = await db.from("lancamentos").select("*");
       if (error) throw error;
       return (data ?? []) as Array<{ id: string; categoria: Categoria; valor: number; descricao: string; fornecedor: string | null }>;
     },

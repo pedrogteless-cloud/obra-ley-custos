@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
-import { supabase } from "@/integrations/supabase/client";
+import { supabase } from "@/lib/db";
 import { AppLayout } from "@/components/AppLayout";
 import { addMeses, brl, CATEGORIAS, dataBR, hoje, type Categoria } from "@/lib/format";
 import { usePerfil } from "@/lib/perfil";
