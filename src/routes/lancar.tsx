@@ -65,7 +65,7 @@ function NovoLancamento() {
 
       const { data: lanc, error } = await supabase
         .from("lancamentos" as never)
-        .insert({
+        .insert({ // @ts-expect-error dynamic
           categoria,
           descricao: descricao.trim(),
           fornecedor: fornecedor.trim() || null,
