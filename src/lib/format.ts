@@ -32,6 +32,12 @@ export function addMeses(dataISO: string, meses: number): string {
   return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
 }
 
+export function addDias(dataISO: string, dias: number): string {
+  const [y, m, d] = dataISO.split("-").map(Number);
+  const date = new Date(y, m - 1, d + dias);
+  return `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, "0")}-${String(date.getDate()).padStart(2, "0")}`;
+}
+
 export function statusVencimento(vencimento: string, pago: boolean): {
   label: string;
   tone: "pago" | "hoje" | "futuro" | "vencido";
