@@ -63,7 +63,6 @@ function LoginPage() {
                 <span className="text-3xl">{p.emoji}</span>
                 <div className="text-left">
                   <div className="font-semibold text-base">{p.nome}</div>
-                  <div className="text-xs text-muted-foreground">{p.papel}</div>
                 </div>
               </button>
             ))}
@@ -85,9 +84,7 @@ function LoginPage() {
               <p className="text-xs text-muted-foreground mt-4">Digite seu PIN</p>
             </div>
 
-            <div
-              className={`flex justify-center gap-3 mb-8 ${erro ? "animate-pulse" : ""}`}
-            >
+            <div className={`flex justify-center gap-3 mb-8 ${erro ? "animate-pulse" : ""}`}>
               {[0, 1, 2, 3].map((i) => (
                 <div
                   key={i}

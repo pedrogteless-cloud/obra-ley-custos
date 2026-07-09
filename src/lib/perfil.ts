@@ -2,9 +2,9 @@ import { useEffect, useState } from "react";
 
 export type Perfil = "Pedro" | "Edson";
 
-export const PERFIS: { nome: Perfil; pin: string; papel: string; emoji: string }[] = [
-  { nome: "Pedro", pin: "2024", papel: "Gestor comercial", emoji: "📊" },
-  { nome: "Edson", pin: "1010", papel: "Responsável pela obra", emoji: "🏗️" },
+export const PERFIS: { nome: Perfil; pin: string; emoji: string }[] = [
+  { nome: "Pedro", pin: "2024", emoji: "📊" },
+  { nome: "Edson", pin: "1010", emoji: "🏗️" },
 ];
 
 const KEY = "custos_obra_perfil";
