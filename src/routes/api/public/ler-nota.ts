@@ -126,7 +126,7 @@ export const Route = createFileRoute("/api/public/ler-nota")({
                 {
                   role: "system",
                   content:
-                    "Você extrai dados de notas fiscais, cupons fiscais e recibos de compra de obra no Brasil. Sempre chame a função registrar_nota. Nunca invente valores: se um campo não estiver legível ou não existir, retorne null.",
+                    "Você extrai dados de notas fiscais, cupons fiscais, boletos, duplicatas e recibos de compra de obra no Brasil. Sempre chame a função registrar_nota. Nunca invente valores: se um campo não estiver legível ou não existir, retorne null.\n\nLeia atentamente as condições de pagamento: 'à vista', 'a prazo', '30/60/90 dias', '3x', duplicatas e boletos.\n- Se a fatura traz datas de vencimento e valores explícitos (boletos/duplicatas), use-os exatamente em `parcelas` e defina condicao_pagamento='parcelado'.\n- Se traz apenas prazos em dias (ex: '30/60/90 dias'), calcule cada vencimento = data de emissão + N dias e divida o valor total igualmente entre as parcelas, jogando qualquer diferença de arredondamento na primeira parcela. A soma das parcelas deve bater com o valor total. condicao_pagamento='parcelado'.\n- Se for à vista ou não houver informação de prazo, retorne condicao_pagamento='a_vista' (ou null se realmente não souber) e parcelas=[]. Nunca invente prazos.",
                 },
                 {
                   role: "user",
