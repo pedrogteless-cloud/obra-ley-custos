@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { db } from "@/lib/db";
 import { AppLayout } from "@/components/AppLayout";
-import { addMeses, brl, CATEGORIAS, dataBR, hoje, type Categoria } from "@/lib/format";
+import { addDias, brl, CATEGORIAS, dataBR, hoje, type Categoria } from "@/lib/format";
 import { usePerfil } from "@/lib/perfil";
 import { Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
