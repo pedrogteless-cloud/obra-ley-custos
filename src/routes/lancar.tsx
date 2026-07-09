@@ -311,7 +311,9 @@ function NovoLancamento() {
           <label className="flex items-center justify-between">
             <div>
               <div className="font-medium text-sm">Pagamento parcelado?</div>
-              <div className="text-xs text-muted-foreground">Gera duplicatas mensais</div>
+              <div className="text-xs text-muted-foreground">
+                Defina os vencimentos (ex: 30/60/90 dias)
+              </div>
             </div>
             <input
               type="checkbox"
@@ -322,41 +324,113 @@ function NovoLancamento() {
           </label>
 
           {parcelado && (
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <Campo label="Nº de parcelas">
-                <input
-                  type="number"
-                  min={2}
-                  max={36}
-                  value={numParcelas}
-                  onChange={(e) => setNumParcelas(Math.max(2, Number(e.target.value) || 2))}
-                  className="input"
-                />
-              </Campo>
-              <Campo label="1º vencimento">
-                <input
-                  type="date"
-                  value={primeiroVenc}
-                  onChange={(e) => setPrimeiroVenc(e.target.value)}
-                  className="input"
-                />
-              </Campo>
+            <div className="mt-3 space-y-3">
+              <div className="rounded-xl bg-muted/50 p-2">
+                <div className="text-[11px] font-medium text-muted-foreground mb-2 px-1">
+                  Gerador rápido
+                </div>
+                <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+                  <label className="block">
+                    <div className="text-[11px] text-muted-foreground mb-1">Nº parcelas</div>
+                    <input
+                      type="number"
+                      min={1}
+                      max={36}
+                      value={genN}
+                      onChange={(e) => setGenN(Math.max(1, Number(e.target.value) || 1))}
+                      className="input"
+                    />
+                  </label>
+                  <label className="block">
+                    <div className="text-[11px] text-muted-foreground mb-1">Intervalo (dias)</div>
+                    <input
+                      type="number"
+                      min={1}
+                      value={genIntervalo}
+                      onChange={(e) => setGenIntervalo(Math.max(1, Number(e.target.value) || 1))}
+                      className="input"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={gerarParcelas}
+                    className="h-10 px-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium"
+                  >
+                    Gerar
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {parcelasManuais.map((p, i) => (
+                  <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                    <input
+                      type="date"
+                      value={p.vencimento}
+                      onChange={(e) =>
+                        setParcelasManuais((arr) =>
+                          arr.map((x, j) => (j === i ? { ...x, vencimento: e.target.value } : x)),
+                        )
+                      }
+                      className="input"
+                    />
+                    <input
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      value={p.valor}
+                      onChange={(e) =>
+                        setParcelasManuais((arr) =>
+                          arr.map((x, j) => (j === i ? { ...x, valor: e.target.value } : x)),
+                        )
+                      }
+                      className="input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setParcelasManuais((arr) => arr.filter((_, j) => j !== i))
+                      }
+                      className="h-10 w-10 rounded-xl bg-muted text-muted-foreground text-lg"
+                      aria-label="Remover parcela"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setParcelasManuais((arr) => [...arr, { vencimento: data, valor: "" }])
+                  }
+                  className="w-full h-10 rounded-xl border-2 border-dashed border-border text-sm text-muted-foreground"
+                >
+                  + Adicionar parcela
+                </button>
+              </div>
+
+              {parcelasManuais.length > 0 && (
+                <div className="flex justify-between text-xs px-1">
+                  <span className="text-muted-foreground">
+                    Soma: <span className="font-medium text-foreground">{brl(somaParcelas)}</span> / {brl(valorNum)}
+                  </span>
+                  {somaDivergente && (
+                    <span className="text-destructive font-medium">
+                      Soma das parcelas ≠ valor total
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {valorNum > 0 && (
-            <div className="mt-3 rounded-xl bg-muted/50 p-2 space-y-1 max-h-40 overflow-auto">
-              {previewParcelas.map((p) => (
-                <div key={p.numero} className="flex justify-between text-xs">
-                  <span>
-                    {p.numero}/{previewParcelas.length} · {dataBR(p.vencimento)}
-                  </span>
-                  <span className="font-medium">{brl(p.valor)}</span>
-                </div>
-              ))}
+          {!parcelado && valorNum > 0 && (
+            <div className="mt-3 rounded-xl bg-muted/50 p-2 text-xs flex justify-between">
+              <span>1/1 · {dataBR(data)}</span>
+              <span className="font-medium">{brl(valorNum)}</span>
             </div>
           )}
         </div>
+
 
         <Campo label="Observação">
           <textarea
