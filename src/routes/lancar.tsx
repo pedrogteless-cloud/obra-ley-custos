@@ -29,8 +29,11 @@ function NovoLancamento() {
   const [comprovante, setComprovante] = useState<File | null>(null);
   const [lendoNota, setLendoNota] = useState(false);
   const [parcelado, setParcelado] = useState(false);
-  const [numParcelas, setNumParcelas] = useState(2);
-  const [primeiroVenc, setPrimeiroVenc] = useState(hoje());
+  const [parcelasManuais, setParcelasManuais] = useState<{ vencimento: string; valor: string }[]>(
+    [],
+  );
+  const [genN, setGenN] = useState(3);
+  const [genIntervalo, setGenIntervalo] = useState(30);
 
   async function comprimirImagem(file: File, maxDim = 1600, quality = 0.75): Promise<string> {
     const dataUrl = await new Promise<string>((res, rej) => {
