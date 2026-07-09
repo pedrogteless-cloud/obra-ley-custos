@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { db } from "@/lib/db";
 import { AppLayout } from "@/components/AppLayout";
 import { brl, CATEGORIAS, dataBR, type Categoria } from "@/lib/format";
+import { desempacotarObservacao } from "@/lib/lancMeta";
 import { ComprovanteImg } from "@/components/ComprovanteImg";
 import { Search } from "lucide-react";
 
@@ -20,7 +21,7 @@ type Lanc = {
   data: string;
   responsavel: string;
   comprovante_url: string | null;
-  possui_nota: boolean;
+  observacao: string | null;
   parcelas: { pago: boolean }[];
 };
 
@@ -42,10 +43,19 @@ function Gastos() {
     },
   });
 
-  const filtrado = lancs.filter((l) => {
+  const comMeta = useMemo(
+    () =>
+      lancs.map((l) => ({
+        ...l,
+        possuiNota: desempacotarObservacao(l.observacao).meta.possuiNota !== false,
+      })),
+    [lancs],
+  );
+
+  const filtrado = comMeta.filter((l) => {
     if (filtro !== "todas" && l.categoria !== filtro) return false;
-    if (notaFiltro === "com" && !l.possui_nota) return false;
-    if (notaFiltro === "sem" && l.possui_nota) return false;
+    if (notaFiltro === "com" && !l.possuiNota) return false;
+    if (notaFiltro === "sem" && l.possuiNota) return false;
     if (busca) {
       const q = busca.toLowerCase();
       return (
@@ -143,7 +153,7 @@ function Gastos() {
                   <div className="flex items-start justify-between gap-2">
                     <div className="text-sm font-semibold truncate flex items-center gap-1.5 min-w-0">
                       <span className="truncate">{l.descricao}</span>
-                      {!l.possui_nota && (
+                      {!l.possuiNota && (
                         <span className="shrink-0 text-[9.5px] font-bold px-1.5 py-0.5 rounded-full bg-muted text-muted-foreground">
                           Sem papel
                         </span>

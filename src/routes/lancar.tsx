@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useRef, useState } from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { db } from "@/lib/db";
 import { AppLayout } from "@/components/AppLayout";
 import {
@@ -13,21 +13,14 @@ import {
   type Categoria,
 } from "@/lib/format";
 import { usePerfil } from "@/lib/perfil";
+import { getAtalhos, salvarAtalhos, type Atalho } from "@/lib/atalhos";
+import { empacotarObservacao } from "@/lib/lancMeta";
 import { Camera, Loader2, Pencil, Plus, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/lancar")({
   component: NovoLancamento,
 });
-
-type Atalho = {
-  id: string;
-  emoji: string | null;
-  label: string;
-  categoria: Categoria;
-  descricao: string;
-  unidade: string | null;
-};
 
 function NovoLancamento() {
   const { perfil } = usePerfil();
@@ -63,62 +56,44 @@ function NovoLancamento() {
   const [naUnidade, setNaUnidade] = useState("");
   const valorRef = useRef<HTMLInputElement>(null);
 
-  const { data: atalhos = [] } = useQuery({
-    queryKey: ["atalhos"],
-    queryFn: async () => {
-      const { data, error } = await db
-        .from("atalhos_lancamento")
-        .select("*")
-        .order("created_at", { ascending: true });
-      if (error) {
-        console.error("Falha ao carregar atalhos", error);
-        return [] as Atalho[];
-      }
-      return (data ?? []) as Atalho[];
-    },
-  });
+  const [atalhos, setAtalhos] = useState<Atalho[]>([]);
+  useEffect(() => {
+    setAtalhos(getAtalhos());
+  }, []);
 
-  const criarAtalho = useMutation({
-    mutationFn: async () => {
-      if (!naLabel.trim()) throw new Error("Dê um nome ao atalho");
-      if (!naDescricao.trim()) throw new Error("Descrição do atalho é obrigatória");
-      const { error } = await db.from("atalhos_lancamento").insert({
-        emoji: naEmoji.trim() || null,
-        label: naLabel.trim(),
-        categoria: naCategoria,
-        descricao: naDescricao.trim(),
-        unidade: naUnidade.trim() || null,
-      });
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["atalhos"] });
-      setNaEmoji("");
-      setNaLabel("");
-      setNaDescricao("");
-      setNaUnidade("");
-      setNovoAtalho(false);
-      toast.success("Atalho criado!");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  function criarAtalho() {
+    if (!naLabel.trim()) return toast.error("Dê um nome ao atalho");
+    if (!naDescricao.trim()) return toast.error("Descrição do atalho é obrigatória");
+    const novo: Atalho = {
+      id: crypto.randomUUID(),
+      emoji: naEmoji.trim(),
+      label: naLabel.trim(),
+      categoria: naCategoria,
+      descricao: naDescricao.trim(),
+      unidade: naUnidade.trim(),
+    };
+    const lista = [...atalhos, novo];
+    setAtalhos(lista);
+    salvarAtalhos(lista);
+    setNaEmoji("");
+    setNaLabel("");
+    setNaDescricao("");
+    setNaUnidade("");
+    setNovoAtalho(false);
+    toast.success("Atalho criado!");
+  }
 
-  const removerAtalho = useMutation({
-    mutationFn: async (id: string) => {
-      const { error } = await db.from("atalhos_lancamento").delete().eq("id", id);
-      if (error) throw error;
-    },
-    onSuccess: () => {
-      qc.invalidateQueries({ queryKey: ["atalhos"] });
-      toast.success("Atalho removido");
-    },
-    onError: (e: Error) => toast.error(e.message),
-  });
+  function removerAtalho(id: string) {
+    const lista = atalhos.filter((a) => a.id !== id);
+    setAtalhos(lista);
+    salvarAtalhos(lista);
+    toast.success("Atalho removido");
+  }
 
   function aplicarAtalho(a: Atalho) {
     setCategoria(a.categoria);
     setDescricao(a.descricao);
-    setUnidade(a.unidade ?? "");
+    setUnidade(a.unidade);
     setAtalhoAtivo(a.label);
     setPossuiNota(false);
     valorRef.current?.focus();
@@ -270,9 +245,7 @@ function NovoLancamento() {
           data,
           responsavel: perfil,
           comprovante_url,
-          observacao: observacao.trim() || null,
-          possui_nota: possuiNota,
-          forma_pagamento: formaPagamento || null,
+          observacao: empacotarObservacao(observacao, { possuiNota, formaPagamento }),
         })
         .select()
         .single();
@@ -343,7 +316,7 @@ function NovoLancamento() {
                 {gerenciarAtalhos && (
                   <button
                     type="button"
-                    onClick={() => removerAtalho.mutate(a.id)}
+                    onClick={() => removerAtalho(a.id)}
                     aria-label={`Remover ${a.label}`}
                     className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-elev-sm"
                   >
@@ -420,9 +393,8 @@ function NovoLancamento() {
             />
             <button
               type="button"
-              onClick={() => criarAtalho.mutate()}
-              disabled={criarAtalho.isPending}
-              className="w-full h-10 rounded-xl bg-primary-gradient text-primary-foreground text-sm font-semibold disabled:opacity-60"
+              onClick={criarAtalho}
+              className="w-full h-10 rounded-xl bg-primary-gradient text-primary-foreground text-sm font-semibold"
             >
               Salvar atalho
             </button>
