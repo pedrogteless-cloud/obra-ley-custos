@@ -146,6 +146,13 @@ function NovoLancamento() {
       if (!perfil) throw new Error("Sem perfil");
       if (!descricao.trim()) throw new Error("Descrição é obrigatória");
       if (valorNum <= 0) throw new Error("Valor deve ser maior que zero");
+      if (parcelado) {
+        if (parcelasCalculadas.length === 0) throw new Error("Adicione ao menos uma parcela");
+        for (const p of parcelasCalculadas) {
+          if (!p.vencimento) throw new Error("Toda parcela precisa ter vencimento");
+          if (!(p.valor > 0)) throw new Error("Toda parcela precisa ter valor maior que zero");
+        }
+      }
 
       let comprovante_url: string | null = null;
       if (comprovante) {
