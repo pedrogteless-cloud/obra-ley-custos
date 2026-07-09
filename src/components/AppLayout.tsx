@@ -28,11 +28,11 @@ export function AppLayout({
 
   return (
     <div className="min-h-screen bg-background pb-28">
-      <header className="sticky top-0 z-30 border-b border-border bg-background/95 backdrop-blur">
-        <div className="mx-auto max-w-md flex items-center justify-between px-4 py-3">
+      <header className="sticky top-0 z-30 border-b border-border bg-background/90 backdrop-blur-md">
+        <div className="mx-auto max-w-md flex items-center justify-between px-4 py-3.5">
           <div>
-            <h1 className="text-xl font-bold tracking-tight">{titulo}</h1>
-            {subtitulo && <p className="text-xs text-muted-foreground">{subtitulo}</p>}
+            <h1 className="text-[21px] font-extrabold tracking-tight leading-none">{titulo}</h1>
+            {subtitulo && <p className="text-[11.5px] text-muted-foreground mt-1">{subtitulo}</p>}
           </div>
           <div className="flex items-center gap-2">
             {acao}
@@ -41,9 +41,10 @@ export function AppLayout({
                 sair();
                 navigate({ to: "/login" });
               }}
-              className="flex items-center gap-1 rounded-full bg-secondary px-3 py-1.5 text-xs font-medium text-secondary-foreground"
+              className="flex items-center gap-1.5 rounded-full bg-primary/10 px-3 py-1.5 text-xs font-semibold text-primary transition active:scale-95"
               title={`Sair (${perfil})`}
             >
+              <span className="h-1.5 w-1.5 rounded-full bg-primary" />
               <span>{perfil}</span>
               <LogOut className="h-3.5 w-3.5" />
             </button>

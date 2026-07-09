@@ -1,7 +1,12 @@
 import { Link, useRouterState } from "@tanstack/react-router";
 import { LayoutDashboard, Receipt, Plus, CalendarClock, FileCheck2 } from "lucide-react";
 
-const itens: { to: "/" | "/gastos" | "/lancar" | "/vencimentos" | "/ordens"; label: string; icon: typeof LayoutDashboard; destaque?: boolean }[] = [
+const itens: {
+  to: "/" | "/gastos" | "/lancar" | "/vencimentos" | "/ordens";
+  label: string;
+  icon: typeof LayoutDashboard;
+  destaque?: boolean;
+}[] = [
   { to: "/", label: "Painel", icon: LayoutDashboard },
   { to: "/gastos", label: "Gastos", icon: Receipt },
   { to: "/lancar", label: "Lançar", icon: Plus, destaque: true },
@@ -19,12 +24,8 @@ export function BottomNav() {
           const ativo = pathname === it.to;
           if (it.destaque) {
             return (
-              <Link
-                key={it.to}
-                to={it.to}
-                className="-mt-8 flex flex-col items-center gap-1"
-              >
-                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary text-primary-foreground shadow-lg shadow-primary/30 ring-4 ring-background transition active:scale-95">
+              <Link key={it.to} to={it.to} className="-mt-8 flex flex-col items-center gap-1">
+                <span className="flex h-16 w-16 items-center justify-center rounded-full bg-primary-gradient text-primary-foreground shadow-primary-glow ring-4 ring-background transition active:scale-95">
                   <Icon className="h-7 w-7" />
                 </span>
                 <span className="text-[11px] font-semibold text-foreground">{it.label}</span>
@@ -41,6 +42,9 @@ export function BottomNav() {
             >
               <Icon className="h-5 w-5" />
               <span className="text-[11px] font-medium">{it.label}</span>
+              <span
+                className={`h-1 w-1 rounded-full transition ${ativo ? "bg-primary" : "bg-transparent"}`}
+              />
             </Link>
           );
         })}
