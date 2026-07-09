@@ -1,11 +1,21 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { db } from "@/lib/db";
 import { AppLayout } from "@/components/AppLayout";
-import { addDias, brl, CATEGORIAS, dataBR, hoje, type Categoria } from "@/lib/format";
+import {
+  addDias,
+  brl,
+  CATEGORIAS,
+  dataBR,
+  FORMAS_PAGAMENTO,
+  hoje,
+  type Categoria,
+} from "@/lib/format";
 import { usePerfil } from "@/lib/perfil";
-import { Camera, Loader2 } from "lucide-react";
+import { getAtalhos, salvarAtalhos, type Atalho } from "@/lib/atalhos";
+import { empacotarObservacao } from "@/lib/lancMeta";
+import { Camera, Loader2, Pencil, Plus, Sparkles, X } from "lucide-react";
 import { toast } from "sonner";
 
 export const Route = createFileRoute("/lancar")({
@@ -34,6 +44,60 @@ function NovoLancamento() {
   );
   const [genN, setGenN] = useState(3);
   const [genIntervalo, setGenIntervalo] = useState(30);
+  const [atalhoAtivo, setAtalhoAtivo] = useState<string | null>(null);
+  const [possuiNota, setPossuiNota] = useState(true);
+  const [formaPagamento, setFormaPagamento] = useState("");
+  const [gerenciarAtalhos, setGerenciarAtalhos] = useState(false);
+  const [novoAtalho, setNovoAtalho] = useState(false);
+  const [naEmoji, setNaEmoji] = useState("");
+  const [naLabel, setNaLabel] = useState("");
+  const [naCategoria, setNaCategoria] = useState<Categoria>("equipamento");
+  const [naDescricao, setNaDescricao] = useState("");
+  const [naUnidade, setNaUnidade] = useState("");
+  const valorRef = useRef<HTMLInputElement>(null);
+
+  const [atalhos, setAtalhos] = useState<Atalho[]>([]);
+  useEffect(() => {
+    setAtalhos(getAtalhos());
+  }, []);
+
+  function criarAtalho() {
+    if (!naLabel.trim()) return toast.error("Dê um nome ao atalho");
+    if (!naDescricao.trim()) return toast.error("Descrição do atalho é obrigatória");
+    const novo: Atalho = {
+      id: crypto.randomUUID(),
+      emoji: naEmoji.trim(),
+      label: naLabel.trim(),
+      categoria: naCategoria,
+      descricao: naDescricao.trim(),
+      unidade: naUnidade.trim(),
+    };
+    const lista = [...atalhos, novo];
+    setAtalhos(lista);
+    salvarAtalhos(lista);
+    setNaEmoji("");
+    setNaLabel("");
+    setNaDescricao("");
+    setNaUnidade("");
+    setNovoAtalho(false);
+    toast.success("Atalho criado!");
+  }
+
+  function removerAtalho(id: string) {
+    const lista = atalhos.filter((a) => a.id !== id);
+    setAtalhos(lista);
+    salvarAtalhos(lista);
+    toast.success("Atalho removido");
+  }
+
+  function aplicarAtalho(a: Atalho) {
+    setCategoria(a.categoria);
+    setDescricao(a.descricao);
+    setUnidade(a.unidade);
+    setAtalhoAtivo(a.label);
+    setPossuiNota(false);
+    valorRef.current?.focus();
+  }
 
   async function comprimirImagem(file: File, maxDim = 1600, quality = 0.75): Promise<string> {
     const dataUrl = await new Promise<string>((res, rej) => {
@@ -63,6 +127,7 @@ function NovoLancamento() {
   async function onComprovanteChange(file: File | null) {
     setComprovante(file);
     if (!file) return;
+    setPossuiNota(true);
     setLendoNota(true);
     try {
       const b64 = await comprimirImagem(file);
@@ -79,7 +144,10 @@ function NovoLancamento() {
       const d = j.dados || {};
       if (d.categoria && ["material", "mao_obra", "equipamento"].includes(d.categoria))
         setCategoria(d.categoria);
-      if (d.descricao) setDescricao(String(d.descricao));
+      if (d.descricao) {
+        setDescricao(String(d.descricao));
+        setAtalhoAtivo(null);
+      }
       if (d.fornecedor) setFornecedor(String(d.fornecedor));
       if (d.subcategoria) setSubcategoria(String(d.subcategoria));
       if (d.valor != null) setValor(String(d.valor).replace(".", ","));
@@ -108,7 +176,6 @@ function NovoLancamento() {
       setLendoNota(false);
     }
   }
-
 
   const valorNum = Number(valor.replace(",", ".")) || 0;
 
@@ -155,7 +222,7 @@ function NovoLancamento() {
       }
 
       let comprovante_url: string | null = null;
-      if (comprovante) {
+      if (possuiNota && comprovante) {
         const ext = comprovante.name.split(".").pop() || "jpg";
         const path = `${data}/${crypto.randomUUID()}.${ext}`;
         const up = await db.storage.from("comprovantes").upload(path, comprovante, {
@@ -164,7 +231,6 @@ function NovoLancamento() {
         if (up.error) throw up.error;
         comprovante_url = path;
       }
-
 
       const { data: lanc, error } = await db
         .from("lancamentos")
@@ -179,7 +245,7 @@ function NovoLancamento() {
           data,
           responsavel: perfil,
           comprovante_url,
-          observacao: observacao.trim() || null,
+          observacao: empacotarObservacao(observacao, { possuiNota, formaPagamento }),
         })
         .select()
         .single();
@@ -207,6 +273,135 @@ function NovoLancamento() {
 
   return (
     <AppLayout titulo="Novo lançamento" subtitulo="Registrar gasto da obra">
+      <div className="mb-4">
+        <div className="flex items-center justify-between mb-2.5">
+          <div className="flex items-center gap-1.5 text-sm font-bold tracking-tight">
+            <Sparkles className="h-4 w-4 text-primary" />
+            Meus atalhos
+          </div>
+          <button
+            type="button"
+            onClick={() => setGerenciarAtalhos((v) => !v)}
+            className={`flex items-center gap-1 text-[11.5px] font-semibold px-2 py-1 rounded-full transition ${
+              gerenciarAtalhos ? "bg-primary/10 text-primary" : "text-muted-foreground"
+            }`}
+          >
+            <Pencil className="h-3 w-3" />
+            {gerenciarAtalhos ? "Concluir" : "Gerenciar"}
+          </button>
+        </div>
+
+        <div className="flex flex-wrap gap-2">
+          {atalhos.map((a) => {
+            const ativo = atalhoAtivo === a.label;
+            const c = CATEGORIAS[a.categoria];
+            return (
+              <span key={a.id} className="relative">
+                <button
+                  type="button"
+                  onClick={() => (gerenciarAtalhos ? undefined : aplicarAtalho(a))}
+                  className="flex items-center gap-1.5 rounded-[14px] border px-3 py-2 text-[12.5px] font-semibold shadow-elev-sm transition active:scale-95"
+                  style={
+                    ativo
+                      ? {
+                          borderColor: `var(--${c.color})`,
+                          backgroundColor: `color-mix(in oklch, var(--${c.color}) 12%, white)`,
+                        }
+                      : { borderColor: "var(--border)", backgroundColor: "var(--card)" }
+                  }
+                >
+                  {a.emoji && <span className="text-[15px]">{a.emoji}</span>}
+                  {a.label}
+                </button>
+                {gerenciarAtalhos && (
+                  <button
+                    type="button"
+                    onClick={() => removerAtalho(a.id)}
+                    aria-label={`Remover ${a.label}`}
+                    className="absolute -top-1.5 -right-1.5 h-5 w-5 rounded-full bg-destructive text-destructive-foreground flex items-center justify-center shadow-elev-sm"
+                  >
+                    <X className="h-3 w-3" />
+                  </button>
+                )}
+              </span>
+            );
+          })}
+
+          <button
+            type="button"
+            onClick={() => setNovoAtalho((v) => !v)}
+            className="flex items-center gap-1.5 rounded-[14px] border border-dashed border-primary/40 px-3 py-2 text-[12.5px] font-semibold text-primary transition active:scale-95"
+          >
+            <Plus className="h-3.5 w-3.5" />
+            Novo atalho
+          </button>
+        </div>
+
+        {novoAtalho && (
+          <div className="mt-3 rounded-2xl border border-border bg-card p-3 space-y-2.5 shadow-elev-sm">
+            <div className="grid grid-cols-[64px_1fr] gap-2">
+              <input
+                value={naEmoji}
+                onChange={(e) => setNaEmoji(e.target.value)}
+                placeholder="🔧"
+                maxLength={4}
+                className="input text-center text-lg"
+              />
+              <input
+                value={naLabel}
+                onChange={(e) => setNaLabel(e.target.value)}
+                placeholder="Nome do atalho (ex: Compactador)"
+                className="input"
+              />
+            </div>
+            <div className="grid grid-cols-3 gap-2">
+              {(Object.keys(CATEGORIAS) as Categoria[]).map((c) => {
+                const info = CATEGORIAS[c];
+                const ativo = naCategoria === c;
+                return (
+                  <button
+                    key={c}
+                    type="button"
+                    onClick={() => setNaCategoria(c)}
+                    className="rounded-xl p-2 border-2 text-center transition"
+                    style={
+                      ativo
+                        ? {
+                            borderColor: `var(--${info.color})`,
+                            backgroundColor: `color-mix(in oklch, var(--${info.color}) 12%, transparent)`,
+                          }
+                        : { borderColor: "var(--border)" }
+                    }
+                  >
+                    <div className="text-lg">{info.emoji}</div>
+                    <div className="text-[10px] font-medium mt-0.5">{info.label}</div>
+                  </button>
+                );
+              })}
+            </div>
+            <input
+              value={naDescricao}
+              onChange={(e) => setNaDescricao(e.target.value)}
+              placeholder="Descrição a preencher (ex: Locação de compactador)"
+              className="input"
+            />
+            <input
+              value={naUnidade}
+              onChange={(e) => setNaUnidade(e.target.value)}
+              placeholder="Unidade (ex: diária, un)"
+              className="input"
+            />
+            <button
+              type="button"
+              onClick={criarAtalho}
+              className="w-full h-10 rounded-xl bg-primary-gradient text-primary-foreground text-sm font-semibold"
+            >
+              Salvar atalho
+            </button>
+          </div>
+        )}
+      </div>
+
       <div className="grid grid-cols-3 gap-2">
         {(Object.keys(CATEGORIAS) as Categoria[]).map((c) => {
           const info = CATEGORIAS[c];
@@ -215,10 +410,17 @@ function NovoLancamento() {
             <button
               key={c}
               onClick={() => setCategoria(c)}
-              className={`rounded-2xl p-3 border-2 transition ${
+              className={`rounded-2xl p-3 border-2 shadow-elev-sm transition active:scale-95 ${
                 ativo ? "border-primary bg-primary/5" : "border-border bg-card"
               }`}
-              style={ativo ? { borderColor: `var(--${info.color})`, backgroundColor: `color-mix(in oklch, var(--${info.color}) 12%, transparent)` } : undefined}
+              style={
+                ativo
+                  ? {
+                      borderColor: `var(--${info.color})`,
+                      backgroundColor: `color-mix(in oklch, var(--${info.color}) 12%, transparent)`,
+                    }
+                  : undefined
+              }
             >
               <div className="text-2xl">{info.emoji}</div>
               <div className="text-[11px] font-medium mt-1">{info.label}</div>
@@ -238,7 +440,10 @@ function NovoLancamento() {
           <input
             required
             value={descricao}
-            onChange={(e) => setDescricao(e.target.value)}
+            onChange={(e) => {
+              setDescricao(e.target.value);
+              setAtalhoAtivo(null);
+            }}
             placeholder="Ex: Cimento CP-II 50kg"
             className="input"
           />
@@ -246,15 +451,25 @@ function NovoLancamento() {
 
         <div className="grid grid-cols-2 gap-3">
           <Campo label="Fornecedor">
-            <input value={fornecedor} onChange={(e) => setFornecedor(e.target.value)} className="input" />
+            <input
+              value={fornecedor}
+              onChange={(e) => setFornecedor(e.target.value)}
+              className="input"
+            />
           </Campo>
           <Campo label="Subcategoria">
-            <input value={subcategoria} onChange={(e) => setSubcategoria(e.target.value)} className="input" placeholder="opcional" />
+            <input
+              value={subcategoria}
+              onChange={(e) => setSubcategoria(e.target.value)}
+              className="input"
+              placeholder="opcional"
+            />
           </Campo>
         </div>
 
         <Campo label="Valor total (R$) *">
           <input
+            ref={valorRef}
             required
             inputMode="decimal"
             value={valor}
@@ -266,46 +481,107 @@ function NovoLancamento() {
 
         <div className="grid grid-cols-3 gap-3">
           <Campo label="Quantidade">
-            <input inputMode="decimal" value={quantidade} onChange={(e) => setQuantidade(e.target.value)} className="input" />
+            <input
+              inputMode="decimal"
+              value={quantidade}
+              onChange={(e) => setQuantidade(e.target.value)}
+              className="input"
+            />
           </Campo>
           <Campo label="Unidade">
-            <input value={unidade} onChange={(e) => setUnidade(e.target.value)} placeholder="sc, m³..." className="input" />
+            <input
+              value={unidade}
+              onChange={(e) => setUnidade(e.target.value)}
+              placeholder="sc, m³..."
+              className="input"
+            />
           </Campo>
           <Campo label="Data *">
-            <input required type="date" value={data} onChange={(e) => setData(e.target.value)} className="input" />
+            <input
+              required
+              type="date"
+              value={data}
+              onChange={(e) => setData(e.target.value)}
+              className="input"
+            />
           </Campo>
         </div>
 
-        <Campo label="Comprovante (foto)">
-          <label
-            className={`flex items-center gap-3 rounded-xl border-2 border-dashed border-border bg-card p-3 ${lendoNota ? "opacity-70 cursor-wait" : "cursor-pointer"}`}
-          >
-            {lendoNota ? (
-              <Loader2 className="h-5 w-5 text-primary animate-spin" />
-            ) : (
-              <Camera className="h-5 w-5 text-muted-foreground" />
-            )}
-            <span className="text-sm text-muted-foreground flex-1 truncate">
-              {lendoNota
-                ? "Lendo a nota com IA..."
-                : comprovante
-                  ? comprovante.name
-                  : "Tirar foto ou escolher arquivo"}
-            </span>
-            <input
-              type="file"
-              accept="image/*"
-              capture="environment"
-              disabled={lendoNota}
-              onChange={(e) => onComprovanteChange(e.target.files?.[0] ?? null)}
-              className="hidden"
-            />
-          </label>
-          <div className="text-[11px] text-muted-foreground mt-1 px-1">
-            Tire a foto da nota e a IA preenche os campos automaticamente.
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <div className="text-xs font-medium text-muted-foreground mb-1">Documento</div>
+            <div className="grid grid-cols-2 gap-1.5 rounded-xl bg-muted p-1">
+              <button
+                type="button"
+                onClick={() => setPossuiNota(true)}
+                className={`h-9 rounded-lg text-[12.5px] font-semibold transition ${
+                  possuiNota ? "bg-card shadow-elev-sm text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                📄 Com papel
+              </button>
+              <button
+                type="button"
+                onClick={() => setPossuiNota(false)}
+                className={`h-9 rounded-lg text-[12.5px] font-semibold transition ${
+                  !possuiNota ? "bg-card shadow-elev-sm text-foreground" : "text-muted-foreground"
+                }`}
+              >
+                ✏️ Sem papel
+              </button>
+            </div>
           </div>
-        </Campo>
+          <Campo label="Forma de pagamento">
+            <select
+              value={formaPagamento}
+              onChange={(e) => setFormaPagamento(e.target.value)}
+              className="input"
+            >
+              <option value="">Selecionar</option>
+              {FORMAS_PAGAMENTO.map((f) => (
+                <option key={f} value={f}>
+                  {f[0].toUpperCase() + f.slice(1)}
+                </option>
+              ))}
+            </select>
+          </Campo>
+        </div>
 
+        {possuiNota ? (
+          <Campo label="Comprovante (foto)">
+            <label
+              className={`flex items-center gap-3 rounded-xl border-2 border-dashed border-border bg-card p-3 ${lendoNota ? "opacity-70 cursor-wait" : "cursor-pointer"}`}
+            >
+              {lendoNota ? (
+                <Loader2 className="h-5 w-5 text-primary animate-spin" />
+              ) : (
+                <Camera className="h-5 w-5 text-muted-foreground" />
+              )}
+              <span className="text-sm text-muted-foreground flex-1 truncate">
+                {lendoNota
+                  ? "Lendo a nota com IA..."
+                  : comprovante
+                    ? comprovante.name
+                    : "Tirar foto ou escolher arquivo"}
+              </span>
+              <input
+                type="file"
+                accept="image/*"
+                capture="environment"
+                disabled={lendoNota}
+                onChange={(e) => onComprovanteChange(e.target.files?.[0] ?? null)}
+                className="hidden"
+              />
+            </label>
+            <div className="text-[11px] text-muted-foreground mt-1 px-1">
+              Tire a foto da nota e a IA preenche os campos automaticamente.
+            </div>
+          </Campo>
+        ) : (
+          <div className="rounded-xl bg-muted/50 p-3 text-[11.5px] text-muted-foreground">
+            Lançamento sem nota fiscal — sem comprovante para anexar.
+          </div>
+        )}
 
         <div className="rounded-2xl border border-border bg-card p-3">
           <label className="flex items-center justify-between">
@@ -387,9 +663,7 @@ function NovoLancamento() {
                     />
                     <button
                       type="button"
-                      onClick={() =>
-                        setParcelasManuais((arr) => arr.filter((_, j) => j !== i))
-                      }
+                      onClick={() => setParcelasManuais((arr) => arr.filter((_, j) => j !== i))}
                       className="h-10 w-10 rounded-xl bg-muted text-muted-foreground text-lg"
                       aria-label="Remover parcela"
                     >
@@ -411,7 +685,8 @@ function NovoLancamento() {
               {parcelasManuais.length > 0 && (
                 <div className="flex justify-between text-xs px-1">
                   <span className="text-muted-foreground">
-                    Soma: <span className="font-medium text-foreground">{brl(somaParcelas)}</span> / {brl(valorNum)}
+                    Soma: <span className="font-medium text-foreground">{brl(somaParcelas)}</span> /{" "}
+                    {brl(valorNum)}
                   </span>
                   {somaDivergente && (
                     <span className="text-destructive font-medium">
@@ -431,7 +706,6 @@ function NovoLancamento() {
           )}
         </div>
 
-
         <Campo label="Observação">
           <textarea
             value={observacao}
@@ -444,7 +718,7 @@ function NovoLancamento() {
         <button
           type="submit"
           disabled={salvar.isPending}
-          className="w-full h-14 rounded-2xl bg-primary text-primary-foreground font-semibold shadow-lg shadow-primary/20 active:scale-[0.98] transition disabled:opacity-60 flex items-center justify-center gap-2"
+          className="w-full h-14 rounded-2xl bg-primary-gradient text-primary-foreground font-bold text-[15px] shadow-primary-glow active:scale-[0.98] transition disabled:opacity-60 flex items-center justify-center gap-2"
         >
           {salvar.isPending && <Loader2 className="h-4 w-4 animate-spin" />}
           Salvar {cat.emoji} {brl(valorNum)}
