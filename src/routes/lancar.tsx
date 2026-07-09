@@ -86,6 +86,21 @@ function NovoLancamento() {
       if (d.quantidade != null) setQuantidade(String(d.quantidade).replace(".", ","));
       if (d.unidade) setUnidade(String(d.unidade));
       if (d.data && /^\d{4}-\d{2}-\d{2}$/.test(d.data)) setData(d.data);
+
+      const parcs = Array.isArray(d.parcelas) ? d.parcelas : [];
+      if (d.condicao_pagamento === "parcelado" || parcs.length >= 2) {
+        setParcelado(true);
+        setParcelasManuais(
+          parcs
+            .filter((p: { vencimento?: string | null }) => p && p.vencimento)
+            .map((p: { vencimento: string; valor: number | null }) => ({
+              vencimento: p.vencimento,
+              valor: p.valor != null ? String(p.valor).replace(".", ",") : "",
+            })),
+        );
+      } else {
+        setParcelado(false);
+      }
       toast.success("Nota lida! Confira os campos antes de salvar.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao ler a nota");
