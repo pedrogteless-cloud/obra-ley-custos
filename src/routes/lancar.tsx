@@ -185,7 +185,7 @@ function NovoLancamento() {
         .single();
       if (error) throw error;
 
-      const parcelas = previewParcelas.map((p) => ({
+      const parcelas = parcelasCalculadas.map((p) => ({
         lancamento_id: (lanc as { id: string }).id,
         numero: p.numero,
         valor: p.valor,
