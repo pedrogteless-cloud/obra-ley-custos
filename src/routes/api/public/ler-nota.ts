@@ -18,7 +18,7 @@ const tool = {
   function: {
     name: "registrar_nota",
     description:
-      "Registra os dados extraídos de uma nota fiscal, cupom fiscal ou recibo de compra de material/serviço de obra. Campos ausentes ou ilegíveis devem ser null — nunca inventar.",
+      "Registra os dados extraídos de uma nota fiscal, cupom fiscal, boleto, duplicata ou recibo de compra de material/serviço de obra. Campos ausentes ou ilegíveis devem ser null — nunca inventar.",
     parameters: {
       type: "object",
       properties: {
@@ -55,6 +55,32 @@ const tool = {
           type: ["string", "null"],
           description: "Data de emissão no formato AAAA-MM-DD.",
         },
+        condicao_pagamento: {
+          type: ["string", "null"],
+          enum: ["a_vista", "parcelado", null],
+          description:
+            "'a_vista' quando pagamento à vista/sem prazo; 'parcelado' quando houver prazos ou múltiplas parcelas; null se não informado.",
+        },
+        parcelas: {
+          type: "array",
+          description:
+            "Plano de parcelas exato. Vazio quando à vista. Se a nota traz datas e valores explícitos (boletos/duplicatas), use-os. Se traz apenas prazos em dias (ex: 30/60/90), calcule vencimento = emissão + N dias e divida o valor total igualmente, jogando o resto de arredondamento na 1ª parcela. A soma deve bater com o valor total. Nunca invente prazos.",
+          items: {
+            type: "object",
+            properties: {
+              vencimento: {
+                type: ["string", "null"],
+                description: "Data de vencimento no formato AAAA-MM-DD.",
+              },
+              valor: {
+                type: ["number", "null"],
+                description: "Valor da parcela em reais.",
+              },
+            },
+            required: ["vencimento", "valor"],
+            additionalProperties: false,
+          },
+        },
       },
       required: [
         "categoria",
@@ -65,6 +91,8 @@ const tool = {
         "quantidade",
         "unidade",
         "data",
+        "condicao_pagamento",
+        "parcelas",
       ],
       additionalProperties: false,
     },
@@ -98,7 +126,7 @@ export const Route = createFileRoute("/api/public/ler-nota")({
                 {
                   role: "system",
                   content:
-                    "Você extrai dados de notas fiscais, cupons fiscais e recibos de compra de obra no Brasil. Sempre chame a função registrar_nota. Nunca invente valores: se um campo não estiver legível ou não existir, retorne null.",
+                    "Você extrai dados de notas fiscais, cupons fiscais, boletos, duplicatas e recibos de compra de obra no Brasil. Sempre chame a função registrar_nota. Nunca invente valores: se um campo não estiver legível ou não existir, retorne null.\n\nLeia atentamente as condições de pagamento: 'à vista', 'a prazo', '30/60/90 dias', '3x', duplicatas e boletos.\n- Se a fatura traz datas de vencimento e valores explícitos (boletos/duplicatas), use-os exatamente em `parcelas` e defina condicao_pagamento='parcelado'.\n- Se traz apenas prazos em dias (ex: '30/60/90 dias'), calcule cada vencimento = data de emissão + N dias e divida o valor total igualmente entre as parcelas, jogando qualquer diferença de arredondamento na primeira parcela. A soma das parcelas deve bater com o valor total. condicao_pagamento='parcelado'.\n- Se for à vista ou não houver informação de prazo, retorne condicao_pagamento='a_vista' (ou null se realmente não souber) e parcelas=[]. Nunca invente prazos.",
                 },
                 {
                   role: "user",

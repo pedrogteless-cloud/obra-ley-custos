@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { db } from "@/lib/db";
 import { AppLayout } from "@/components/AppLayout";
-import { addMeses, brl, CATEGORIAS, dataBR, hoje, type Categoria } from "@/lib/format";
+import { addDias, brl, CATEGORIAS, dataBR, hoje, type Categoria } from "@/lib/format";
 import { usePerfil } from "@/lib/perfil";
 import { Camera, Loader2 } from "lucide-react";
 import { toast } from "sonner";
@@ -29,8 +29,11 @@ function NovoLancamento() {
   const [comprovante, setComprovante] = useState<File | null>(null);
   const [lendoNota, setLendoNota] = useState(false);
   const [parcelado, setParcelado] = useState(false);
-  const [numParcelas, setNumParcelas] = useState(2);
-  const [primeiroVenc, setPrimeiroVenc] = useState(hoje());
+  const [parcelasManuais, setParcelasManuais] = useState<{ vencimento: string; valor: string }[]>(
+    [],
+  );
+  const [genN, setGenN] = useState(3);
+  const [genIntervalo, setGenIntervalo] = useState(30);
 
   async function comprimirImagem(file: File, maxDim = 1600, quality = 0.75): Promise<string> {
     const dataUrl = await new Promise<string>((res, rej) => {
@@ -83,6 +86,21 @@ function NovoLancamento() {
       if (d.quantidade != null) setQuantidade(String(d.quantidade).replace(".", ","));
       if (d.unidade) setUnidade(String(d.unidade));
       if (d.data && /^\d{4}-\d{2}-\d{2}$/.test(d.data)) setData(d.data);
+
+      const parcs = Array.isArray(d.parcelas) ? d.parcelas : [];
+      if (d.condicao_pagamento === "parcelado" || parcs.length >= 2) {
+        setParcelado(true);
+        setParcelasManuais(
+          parcs
+            .filter((p: { vencimento?: string | null }) => p && p.vencimento)
+            .map((p: { vencimento: string; valor: number | null }) => ({
+              vencimento: p.vencimento,
+              valor: p.valor != null ? String(p.valor).replace(".", ",") : "",
+            })),
+        );
+      } else {
+        setParcelado(false);
+      }
       toast.success("Nota lida! Confira os campos antes de salvar.");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Erro ao ler a nota");
@@ -94,24 +112,47 @@ function NovoLancamento() {
 
   const valorNum = Number(valor.replace(",", ".")) || 0;
 
-  const previewParcelas = useMemo(() => {
+  const parcelasCalculadas = useMemo(() => {
     if (!parcelado) {
       return [{ numero: 1, valor: valorNum, vencimento: data }];
     }
-    const base = Math.floor((valorNum * 100) / numParcelas) / 100;
-    const resto = Math.round((valorNum - base * numParcelas) * 100) / 100;
-    return Array.from({ length: numParcelas }, (_, i) => ({
+    return parcelasManuais.map((p, i) => ({
       numero: i + 1,
-      valor: i === 0 ? base + resto : base,
-      vencimento: addMeses(primeiroVenc, i),
+      valor: Number(p.valor.replace(",", ".")) || 0,
+      vencimento: p.vencimento,
     }));
-  }, [parcelado, valorNum, numParcelas, primeiroVenc, data]);
+  }, [parcelado, valorNum, parcelasManuais, data]);
+
+  const somaParcelas = useMemo(
+    () => parcelasCalculadas.reduce((s, p) => s + (p.valor || 0), 0),
+    [parcelasCalculadas],
+  );
+  const somaDivergente = parcelado && Math.abs(somaParcelas - valorNum) > 0.01;
+
+  function gerarParcelas() {
+    const n = Math.max(1, Math.floor(genN) || 1);
+    const base = Math.floor((valorNum * 100) / n) / 100;
+    const resto = Math.round((valorNum - base * n) * 100) / 100;
+    setParcelasManuais(
+      Array.from({ length: n }, (_, i) => ({
+        vencimento: addDias(data, (i + 1) * genIntervalo),
+        valor: String((i === 0 ? base + resto : base).toFixed(2)).replace(".", ","),
+      })),
+    );
+  }
 
   const salvar = useMutation({
     mutationFn: async () => {
       if (!perfil) throw new Error("Sem perfil");
       if (!descricao.trim()) throw new Error("Descrição é obrigatória");
       if (valorNum <= 0) throw new Error("Valor deve ser maior que zero");
+      if (parcelado) {
+        if (parcelasCalculadas.length === 0) throw new Error("Adicione ao menos uma parcela");
+        for (const p of parcelasCalculadas) {
+          if (!p.vencimento) throw new Error("Toda parcela precisa ter vencimento");
+          if (!(p.valor > 0)) throw new Error("Toda parcela precisa ter valor maior que zero");
+        }
+      }
 
       let comprovante_url: string | null = null;
       if (comprovante) {
@@ -144,7 +185,7 @@ function NovoLancamento() {
         .single();
       if (error) throw error;
 
-      const parcelas = previewParcelas.map((p) => ({
+      const parcelas = parcelasCalculadas.map((p) => ({
         lancamento_id: (lanc as { id: string }).id,
         numero: p.numero,
         valor: p.valor,
@@ -270,7 +311,9 @@ function NovoLancamento() {
           <label className="flex items-center justify-between">
             <div>
               <div className="font-medium text-sm">Pagamento parcelado?</div>
-              <div className="text-xs text-muted-foreground">Gera duplicatas mensais</div>
+              <div className="text-xs text-muted-foreground">
+                Defina os vencimentos (ex: 30/60/90 dias)
+              </div>
             </div>
             <input
               type="checkbox"
@@ -281,41 +324,113 @@ function NovoLancamento() {
           </label>
 
           {parcelado && (
-            <div className="mt-3 grid grid-cols-2 gap-3">
-              <Campo label="Nº de parcelas">
-                <input
-                  type="number"
-                  min={2}
-                  max={36}
-                  value={numParcelas}
-                  onChange={(e) => setNumParcelas(Math.max(2, Number(e.target.value) || 2))}
-                  className="input"
-                />
-              </Campo>
-              <Campo label="1º vencimento">
-                <input
-                  type="date"
-                  value={primeiroVenc}
-                  onChange={(e) => setPrimeiroVenc(e.target.value)}
-                  className="input"
-                />
-              </Campo>
+            <div className="mt-3 space-y-3">
+              <div className="rounded-xl bg-muted/50 p-2">
+                <div className="text-[11px] font-medium text-muted-foreground mb-2 px-1">
+                  Gerador rápido
+                </div>
+                <div className="grid grid-cols-[1fr_1fr_auto] gap-2 items-end">
+                  <label className="block">
+                    <div className="text-[11px] text-muted-foreground mb-1">Nº parcelas</div>
+                    <input
+                      type="number"
+                      min={1}
+                      max={36}
+                      value={genN}
+                      onChange={(e) => setGenN(Math.max(1, Number(e.target.value) || 1))}
+                      className="input"
+                    />
+                  </label>
+                  <label className="block">
+                    <div className="text-[11px] text-muted-foreground mb-1">Intervalo (dias)</div>
+                    <input
+                      type="number"
+                      min={1}
+                      value={genIntervalo}
+                      onChange={(e) => setGenIntervalo(Math.max(1, Number(e.target.value) || 1))}
+                      className="input"
+                    />
+                  </label>
+                  <button
+                    type="button"
+                    onClick={gerarParcelas}
+                    className="h-10 px-3 rounded-xl bg-primary text-primary-foreground text-sm font-medium"
+                  >
+                    Gerar
+                  </button>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                {parcelasManuais.map((p, i) => (
+                  <div key={i} className="grid grid-cols-[1fr_1fr_auto] gap-2 items-center">
+                    <input
+                      type="date"
+                      value={p.vencimento}
+                      onChange={(e) =>
+                        setParcelasManuais((arr) =>
+                          arr.map((x, j) => (j === i ? { ...x, vencimento: e.target.value } : x)),
+                        )
+                      }
+                      className="input"
+                    />
+                    <input
+                      inputMode="decimal"
+                      placeholder="0,00"
+                      value={p.valor}
+                      onChange={(e) =>
+                        setParcelasManuais((arr) =>
+                          arr.map((x, j) => (j === i ? { ...x, valor: e.target.value } : x)),
+                        )
+                      }
+                      className="input"
+                    />
+                    <button
+                      type="button"
+                      onClick={() =>
+                        setParcelasManuais((arr) => arr.filter((_, j) => j !== i))
+                      }
+                      className="h-10 w-10 rounded-xl bg-muted text-muted-foreground text-lg"
+                      aria-label="Remover parcela"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ))}
+                <button
+                  type="button"
+                  onClick={() =>
+                    setParcelasManuais((arr) => [...arr, { vencimento: data, valor: "" }])
+                  }
+                  className="w-full h-10 rounded-xl border-2 border-dashed border-border text-sm text-muted-foreground"
+                >
+                  + Adicionar parcela
+                </button>
+              </div>
+
+              {parcelasManuais.length > 0 && (
+                <div className="flex justify-between text-xs px-1">
+                  <span className="text-muted-foreground">
+                    Soma: <span className="font-medium text-foreground">{brl(somaParcelas)}</span> / {brl(valorNum)}
+                  </span>
+                  {somaDivergente && (
+                    <span className="text-destructive font-medium">
+                      Soma das parcelas ≠ valor total
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
-          {valorNum > 0 && (
-            <div className="mt-3 rounded-xl bg-muted/50 p-2 space-y-1 max-h-40 overflow-auto">
-              {previewParcelas.map((p) => (
-                <div key={p.numero} className="flex justify-between text-xs">
-                  <span>
-                    {p.numero}/{previewParcelas.length} · {dataBR(p.vencimento)}
-                  </span>
-                  <span className="font-medium">{brl(p.valor)}</span>
-                </div>
-              ))}
+          {!parcelado && valorNum > 0 && (
+            <div className="mt-3 rounded-xl bg-muted/50 p-2 text-xs flex justify-between">
+              <span>1/1 · {dataBR(data)}</span>
+              <span className="font-medium">{brl(valorNum)}</span>
             </div>
           )}
         </div>
+
 
         <Campo label="Observação">
           <textarea
