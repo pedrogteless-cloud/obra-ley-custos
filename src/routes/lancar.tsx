@@ -27,9 +27,70 @@ function NovoLancamento() {
   const [data, setData] = useState(hoje());
   const [observacao, setObservacao] = useState("");
   const [comprovante, setComprovante] = useState<File | null>(null);
+  const [lendoNota, setLendoNota] = useState(false);
   const [parcelado, setParcelado] = useState(false);
   const [numParcelas, setNumParcelas] = useState(2);
   const [primeiroVenc, setPrimeiroVenc] = useState(hoje());
+
+  async function comprimirImagem(file: File, maxDim = 1600, quality = 0.75): Promise<string> {
+    const dataUrl = await new Promise<string>((res, rej) => {
+      const r = new FileReader();
+      r.onload = () => res(r.result as string);
+      r.onerror = () => rej(r.error);
+      r.readAsDataURL(file);
+    });
+    const img = await new Promise<HTMLImageElement>((res, rej) => {
+      const i = new Image();
+      i.onload = () => res(i);
+      i.onerror = () => rej(new Error("Falha ao carregar imagem"));
+      i.src = dataUrl;
+    });
+    const scale = Math.min(1, maxDim / Math.max(img.width, img.height));
+    const w = Math.round(img.width * scale);
+    const h = Math.round(img.height * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = w;
+    canvas.height = h;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return dataUrl;
+    ctx.drawImage(img, 0, 0, w, h);
+    return canvas.toDataURL("image/jpeg", quality);
+  }
+
+  async function onComprovanteChange(file: File | null) {
+    setComprovante(file);
+    if (!file) return;
+    setLendoNota(true);
+    try {
+      const b64 = await comprimirImagem(file);
+      const r = await fetch("/api/public/ler-nota", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ image: b64 }),
+      });
+      const j = await r.json();
+      if (!r.ok || !j.ok) {
+        toast.error(j.error || "Não foi possível ler a nota");
+        return;
+      }
+      const d = j.dados || {};
+      if (d.categoria && ["material", "mao_obra", "equipamento"].includes(d.categoria))
+        setCategoria(d.categoria);
+      if (d.descricao) setDescricao(String(d.descricao));
+      if (d.fornecedor) setFornecedor(String(d.fornecedor));
+      if (d.subcategoria) setSubcategoria(String(d.subcategoria));
+      if (d.valor != null) setValor(String(d.valor).replace(".", ","));
+      if (d.quantidade != null) setQuantidade(String(d.quantidade).replace(".", ","));
+      if (d.unidade) setUnidade(String(d.unidade));
+      if (d.data && /^\d{4}-\d{2}-\d{2}$/.test(d.data)) setData(d.data);
+      toast.success("Nota lida! Confira os campos antes de salvar.");
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Erro ao ler a nota");
+    } finally {
+      setLendoNota(false);
+    }
+  }
+
 
   const valorNum = Number(valor.replace(",", ".")) || 0;
 
@@ -175,20 +236,35 @@ function NovoLancamento() {
         </div>
 
         <Campo label="Comprovante (foto)">
-          <label className="flex items-center gap-3 rounded-xl border-2 border-dashed border-border bg-card p-3 cursor-pointer">
-            <Camera className="h-5 w-5 text-muted-foreground" />
+          <label
+            className={`flex items-center gap-3 rounded-xl border-2 border-dashed border-border bg-card p-3 ${lendoNota ? "opacity-70 cursor-wait" : "cursor-pointer"}`}
+          >
+            {lendoNota ? (
+              <Loader2 className="h-5 w-5 text-primary animate-spin" />
+            ) : (
+              <Camera className="h-5 w-5 text-muted-foreground" />
+            )}
             <span className="text-sm text-muted-foreground flex-1 truncate">
-              {comprovante ? comprovante.name : "Tirar foto ou escolher arquivo"}
+              {lendoNota
+                ? "Lendo a nota com IA..."
+                : comprovante
+                  ? comprovante.name
+                  : "Tirar foto ou escolher arquivo"}
             </span>
             <input
               type="file"
               accept="image/*"
               capture="environment"
-              onChange={(e) => setComprovante(e.target.files?.[0] ?? null)}
+              disabled={lendoNota}
+              onChange={(e) => onComprovanteChange(e.target.files?.[0] ?? null)}
               className="hidden"
             />
           </label>
+          <div className="text-[11px] text-muted-foreground mt-1 px-1">
+            Tire a foto da nota e a IA preenche os campos automaticamente.
+          </div>
         </Campo>
+
 
         <div className="rounded-2xl border border-border bg-card p-3">
           <label className="flex items-center justify-between">
