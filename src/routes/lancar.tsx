@@ -112,18 +112,34 @@ function NovoLancamento() {
 
   const valorNum = Number(valor.replace(",", ".")) || 0;
 
-  const previewParcelas = useMemo(() => {
+  const parcelasCalculadas = useMemo(() => {
     if (!parcelado) {
       return [{ numero: 1, valor: valorNum, vencimento: data }];
     }
-    const base = Math.floor((valorNum * 100) / numParcelas) / 100;
-    const resto = Math.round((valorNum - base * numParcelas) * 100) / 100;
-    return Array.from({ length: numParcelas }, (_, i) => ({
+    return parcelasManuais.map((p, i) => ({
       numero: i + 1,
-      valor: i === 0 ? base + resto : base,
-      vencimento: addMeses(primeiroVenc, i),
+      valor: Number(p.valor.replace(",", ".")) || 0,
+      vencimento: p.vencimento,
     }));
-  }, [parcelado, valorNum, numParcelas, primeiroVenc, data]);
+  }, [parcelado, valorNum, parcelasManuais, data]);
+
+  const somaParcelas = useMemo(
+    () => parcelasCalculadas.reduce((s, p) => s + (p.valor || 0), 0),
+    [parcelasCalculadas],
+  );
+  const somaDivergente = parcelado && Math.abs(somaParcelas - valorNum) > 0.01;
+
+  function gerarParcelas() {
+    const n = Math.max(1, Math.floor(genN) || 1);
+    const base = Math.floor((valorNum * 100) / n) / 100;
+    const resto = Math.round((valorNum - base * n) * 100) / 100;
+    setParcelasManuais(
+      Array.from({ length: n }, (_, i) => ({
+        vencimento: addDias(data, (i + 1) * genIntervalo),
+        valor: String((i === 0 ? base + resto : base).toFixed(2)).replace(".", ","),
+      })),
+    );
+  }
 
   const salvar = useMutation({
     mutationFn: async () => {
