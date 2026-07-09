@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as LancarRouteImport } from './routes/lancar'
 import { Route as GastosRouteImport } from './routes/gastos'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as ApiPublicLerNotaRouteImport } from './routes/api/public/ler-nota'
 
 const VencimentosRoute = VencimentosRouteImport.update({
   id: '/vencimentos',
@@ -46,6 +47,11 @@ const IndexRoute = IndexRouteImport.update({
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicLerNotaRoute = ApiPublicLerNotaRouteImport.update({
+  id: '/api/public/ler-nota',
+  path: '/api/public/ler-nota',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -54,6 +60,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/ordens': typeof OrdensRoute
   '/vencimentos': typeof VencimentosRoute
+  '/api/public/ler-nota': typeof ApiPublicLerNotaRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -62,6 +69,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/ordens': typeof OrdensRoute
   '/vencimentos': typeof VencimentosRoute
+  '/api/public/ler-nota': typeof ApiPublicLerNotaRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -71,12 +79,27 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/ordens': typeof OrdensRoute
   '/vencimentos': typeof VencimentosRoute
+  '/api/public/ler-nota': typeof ApiPublicLerNotaRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/gastos' | '/lancar' | '/login' | '/ordens' | '/vencimentos'
+  fullPaths:
+    | '/'
+    | '/gastos'
+    | '/lancar'
+    | '/login'
+    | '/ordens'
+    | '/vencimentos'
+    | '/api/public/ler-nota'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/gastos' | '/lancar' | '/login' | '/ordens' | '/vencimentos'
+  to:
+    | '/'
+    | '/gastos'
+    | '/lancar'
+    | '/login'
+    | '/ordens'
+    | '/vencimentos'
+    | '/api/public/ler-nota'
   id:
     | '__root__'
     | '/'
@@ -85,6 +108,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/ordens'
     | '/vencimentos'
+    | '/api/public/ler-nota'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -94,6 +118,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   OrdensRoute: typeof OrdensRoute
   VencimentosRoute: typeof VencimentosRoute
+  ApiPublicLerNotaRoute: typeof ApiPublicLerNotaRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -140,6 +165,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/ler-nota': {
+      id: '/api/public/ler-nota'
+      path: '/api/public/ler-nota'
+      fullPath: '/api/public/ler-nota'
+      preLoaderRoute: typeof ApiPublicLerNotaRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -150,17 +182,8 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   OrdensRoute: OrdensRoute,
   VencimentosRoute: VencimentosRoute,
+  ApiPublicLerNotaRoute: ApiPublicLerNotaRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
