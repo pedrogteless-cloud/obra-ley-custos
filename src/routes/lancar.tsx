@@ -236,20 +236,35 @@ function NovoLancamento() {
         </div>
 
         <Campo label="Comprovante (foto)">
-          <label className="flex items-center gap-3 rounded-xl border-2 border-dashed border-border bg-card p-3 cursor-pointer">
-            <Camera className="h-5 w-5 text-muted-foreground" />
+          <label
+            className={`flex items-center gap-3 rounded-xl border-2 border-dashed border-border bg-card p-3 ${lendoNota ? "opacity-70 cursor-wait" : "cursor-pointer"}`}
+          >
+            {lendoNota ? (
+              <Loader2 className="h-5 w-5 text-primary animate-spin" />
+            ) : (
+              <Camera className="h-5 w-5 text-muted-foreground" />
+            )}
             <span className="text-sm text-muted-foreground flex-1 truncate">
-              {comprovante ? comprovante.name : "Tirar foto ou escolher arquivo"}
+              {lendoNota
+                ? "Lendo a nota com IA..."
+                : comprovante
+                  ? comprovante.name
+                  : "Tirar foto ou escolher arquivo"}
             </span>
             <input
               type="file"
               accept="image/*"
               capture="environment"
-              onChange={(e) => setComprovante(e.target.files?.[0] ?? null)}
+              disabled={lendoNota}
+              onChange={(e) => onComprovanteChange(e.target.files?.[0] ?? null)}
               className="hidden"
             />
           </label>
+          <div className="text-[11px] text-muted-foreground mt-1 px-1">
+            Tire a foto da nota e a IA preenche os campos automaticamente.
+          </div>
         </Campo>
+
 
         <div className="rounded-2xl border border-border bg-card p-3">
           <label className="flex items-center justify-between">
