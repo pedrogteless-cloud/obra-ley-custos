@@ -1,0 +1,1 @@
+TRUNCATE TABLE public.ordens_pagamento, public.parcelas, public.lancamentos RESTART IDENTITY CASCADE;
