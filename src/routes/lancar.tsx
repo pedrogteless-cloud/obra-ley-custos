@@ -47,6 +47,7 @@ function NovoLancamento() {
   const [atalhoAtivo, setAtalhoAtivo] = useState<string | null>(null);
   const [possuiNota, setPossuiNota] = useState(true);
   const [formaPagamento, setFormaPagamento] = useState("");
+  const [parcelasCartao, setParcelasCartao] = useState(1);
   const [gerenciarAtalhos, setGerenciarAtalhos] = useState(false);
   const [novoAtalho, setNovoAtalho] = useState(false);
   const [naEmoji, setNaEmoji] = useState("");
@@ -196,16 +197,31 @@ function NovoLancamento() {
   );
   const somaDivergente = parcelado && Math.abs(somaParcelas - valorNum) > 0.01;
 
-  function gerarParcelas() {
-    const n = Math.max(1, Math.floor(genN) || 1);
+  function gerarParcelasN(n: number, intervaloDias: number) {
+    n = Math.max(1, Math.floor(n) || 1);
     const base = Math.floor((valorNum * 100) / n) / 100;
     const resto = Math.round((valorNum - base * n) * 100) / 100;
     setParcelasManuais(
       Array.from({ length: n }, (_, i) => ({
-        vencimento: addDias(data, (i + 1) * genIntervalo),
+        vencimento: addDias(data, (i + 1) * intervaloDias),
         valor: String((i === 0 ? base + resto : base).toFixed(2)).replace(".", ","),
       })),
     );
+  }
+
+  function gerarParcelas() {
+    gerarParcelasN(genN, genIntervalo);
+  }
+
+  function onParcelasCartaoChange(n: number) {
+    setParcelasCartao(n);
+    if (n === 1) {
+      setParcelado(false);
+      setParcelasManuais([]);
+    } else {
+      setParcelado(true);
+      gerarParcelasN(n, 30);
+    }
   }
 
   const salvar = useMutation({
@@ -546,6 +562,22 @@ function NovoLancamento() {
             </select>
           </Campo>
         </div>
+
+        {formaPagamento === "cartão" && (
+          <Campo label="Em quantas vezes?">
+            <select
+              value={parcelasCartao}
+              onChange={(e) => onParcelasCartaoChange(Number(e.target.value))}
+              className="input"
+            >
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>
+                  {n}x{n === 1 ? " (à vista)" : ""}
+                </option>
+              ))}
+            </select>
+          </Campo>
+        )}
 
         {possuiNota ? (
           <Campo label="Comprovante (foto)">
