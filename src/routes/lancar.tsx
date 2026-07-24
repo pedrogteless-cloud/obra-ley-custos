@@ -47,6 +47,7 @@ function NovoLancamento() {
   const [atalhoAtivo, setAtalhoAtivo] = useState<string | null>(null);
   const [possuiNota, setPossuiNota] = useState(true);
   const [formaPagamento, setFormaPagamento] = useState("");
+  const [parcelasCartao, setParcelasCartao] = useState(1);
   const [gerenciarAtalhos, setGerenciarAtalhos] = useState(false);
   const [novoAtalho, setNovoAtalho] = useState(false);
   const [naEmoji, setNaEmoji] = useState("");
