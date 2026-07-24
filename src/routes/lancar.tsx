@@ -197,16 +197,31 @@ function NovoLancamento() {
   );
   const somaDivergente = parcelado && Math.abs(somaParcelas - valorNum) > 0.01;
 
-  function gerarParcelas() {
-    const n = Math.max(1, Math.floor(genN) || 1);
+  function gerarParcelasN(n: number, intervaloDias: number) {
+    n = Math.max(1, Math.floor(n) || 1);
     const base = Math.floor((valorNum * 100) / n) / 100;
     const resto = Math.round((valorNum - base * n) * 100) / 100;
     setParcelasManuais(
       Array.from({ length: n }, (_, i) => ({
-        vencimento: addDias(data, (i + 1) * genIntervalo),
+        vencimento: addDias(data, (i + 1) * intervaloDias),
         valor: String((i === 0 ? base + resto : base).toFixed(2)).replace(".", ","),
       })),
     );
+  }
+
+  function gerarParcelas() {
+    gerarParcelasN(genN, genIntervalo);
+  }
+
+  function onParcelasCartaoChange(n: number) {
+    setParcelasCartao(n);
+    if (n === 1) {
+      setParcelado(false);
+      setParcelasManuais([]);
+    } else {
+      setParcelado(true);
+      gerarParcelasN(n, 30);
+    }
   }
 
   const salvar = useMutation({
