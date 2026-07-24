@@ -562,19 +562,18 @@ function NovoLancamento() {
                   ? "Lendo a nota com IA..."
                   : comprovante
                     ? comprovante.name
-                    : "Tirar foto ou escolher arquivo"}
+                    : "Tirar foto ou escolher da galeria"}
               </span>
               <input
                 type="file"
                 accept="image/*"
-                capture="environment"
                 disabled={lendoNota}
                 onChange={(e) => onComprovanteChange(e.target.files?.[0] ?? null)}
                 className="hidden"
               />
             </label>
             <div className="text-[11px] text-muted-foreground mt-1 px-1">
-              Tire a foto da nota e a IA preenche os campos automaticamente.
+              Tire a foto da nota ou escolha da galeria — a IA preenche os campos automaticamente.
             </div>
           </Campo>
         ) : (
