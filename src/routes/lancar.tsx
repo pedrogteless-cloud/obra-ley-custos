@@ -563,6 +563,22 @@ function NovoLancamento() {
           </Campo>
         </div>
 
+        {formaPagamento === "cartão" && (
+          <Campo label="Em quantas vezes?">
+            <select
+              value={parcelasCartao}
+              onChange={(e) => onParcelasCartaoChange(Number(e.target.value))}
+              className="input"
+            >
+              {Array.from({ length: 12 }, (_, i) => i + 1).map((n) => (
+                <option key={n} value={n}>
+                  {n}x{n === 1 ? " (à vista)" : ""}
+                </option>
+              ))}
+            </select>
+          </Campo>
+        )}
+
         {possuiNota ? (
           <Campo label="Comprovante (foto)">
             <label
